@@ -1,8 +1,12 @@
 use std::fs;
+use std::env;
 use db::{create_blame_table, insert_blame, Person};
-use poise::serenity_prelude::{self as serenity, futures::TryFutureExt};
+use poise::serenity_prelude::{self as serenity};
 use tokio::sync::Mutex;
 use rusqlite::{Connection, Result};
+use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
+use songbird::input::YoutubeDl;
+use reqwest::Client as HttpClient;
 
 mod db;
 
@@ -50,9 +54,7 @@ async fn list(ctx: Context<'_>) -> Result<(), Error> {
 
     let mut conn = Mutex::new(Connection::open("./db/blame.db3")?);
 
-    let mut response = String::new();
-
-    response = format!("The current rotation is: ");
+    let mut response = format!("The current rotation is: ");
 
     let _ = create_blame_table(&mut conn).await?;
     
@@ -85,15 +87,13 @@ async fn add(ctx: Context<'_>,
 
     let _ = create_blame_table(&mut conn).await?;
 
-        let mut response = String::new();
-
         let output = db::query_blame_table(&mut conn);
 
         let (_names, ids): (Vec<String>, Vec<i32>) = output.await.unwrap();
 
         for i in ids {
             if i == id {
-                response = format!("You've already added someone with the rotation id of: {}", id);
+                let response: String = format!("You've already added someone with the rotation id of: {}", id);
                 ctx.say(response).await?;
 
                 return Ok(());
@@ -107,7 +107,7 @@ async fn add(ctx: Context<'_>,
 
     insert_blame(&mut conn, person.clone()).await?;
 
-    response = format!("Added {} into the rotation, with placement {}.", &person.name, &person.rotation_id);
+    let response: String = format!("Added {} into the rotation, with placement {}.", &person.name, &person.rotation_id);
     ctx.say(response).await?;
     Ok(())
 }
@@ -116,6 +116,7 @@ async fn add(ctx: Context<'_>,
 #[tokio::main]
 async fn main() { 
 
+    let _tokeon = env::var("DISCORD_TOKEN").expect("Expected a token in the environment.");
     let token: String = fs::read_to_string("./.env").expect("Unable to read file.");
     let intents = serenity::GatewayIntents::non_privileged();
     let framework = poise::Framework::builder()
@@ -135,6 +136,7 @@ async fn main() {
         .framework(framework)
         .await;
 
-
+    
     client.unwrap().start().await.unwrap();
+    println!("Bot started.");
 }
