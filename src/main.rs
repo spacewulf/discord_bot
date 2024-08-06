@@ -1,5 +1,4 @@
 use std::fs;
-use std::env;
 use db::{create_blame_table, insert_blame, Person};
 use poise::serenity_prelude::{self as serenity};
 use tokio::sync::Mutex;
@@ -71,6 +70,8 @@ async fn list(ctx: Context<'_>) -> Result<(), Error> {
 
     response.push_str(rem_last(&names_string));
 
+    println!("{}", response.clone());
+
     ctx.say(response).await?;
 
     Ok(())
@@ -108,6 +109,7 @@ async fn add(ctx: Context<'_>,
     insert_blame(&mut conn, person.clone()).await?;
 
     let response: String = format!("Added {} into the rotation, with placement {}.", &person.name, &person.rotation_id);
+    println!("{}", response.clone());
     ctx.say(response).await?;
     Ok(())
 }
@@ -115,9 +117,12 @@ async fn add(ctx: Context<'_>,
 
 #[tokio::main]
 async fn main() { 
+    dotenvy::dotenv().unwrap();
 
-    let _tokeon = env::var("DISCORD_TOKEN").expect("Expected a token in the environment.");
-    let token: String = fs::read_to_string("./.env").expect("Unable to read file.");
+    let _ = fs::create_dir_all("./db");
+
+    let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment.");
+    // let token: String = fs::read_to_string("./.env").expect("Unable to read file.");
     let intents = serenity::GatewayIntents::non_privileged();
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -136,7 +141,7 @@ async fn main() {
         .framework(framework)
         .await;
 
-    
+    println!("Bot started successfully.");
+
     client.unwrap().start().await.unwrap();
-    println!("Bot started.");
 }
