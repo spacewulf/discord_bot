@@ -51,7 +51,11 @@ async fn blame(
 #[poise::command(slash_command, prefix_command)]
 async fn list(ctx: Context<'_>) -> Result<(), Error> {
 
-    let mut conn = Mutex::new(Connection::open("./db/blame.db3")?);
+    let guild_id = ctx.guild_id().unwrap().to_string();
+
+    let _ = fs::create_dir_all(format!("./db/{}", guild_id));
+
+    let mut conn = Mutex::new(Connection::open(format!("./db/{}/blame.db3", guild_id))?);
 
     let mut response = format!("The current rotation is: ");
 
@@ -84,7 +88,11 @@ async fn add(ctx: Context<'_>,
     #[description = "Place in rotation"] id: i32,
 ) -> Result<(), Error> {
 
-    let mut conn = Mutex::new(Connection::open("./db/blame.db3")?);
+    let guild_id = ctx.guild_id().unwrap().to_string();
+
+    let _ = fs::create_dir_all(format!("./db/{}", guild_id));
+    
+    let mut conn = Mutex::new(Connection::open(format!("./db/{}/blame.db3", guild_id))?);
 
     let _ = create_blame_table(&mut conn).await?;
 
@@ -92,10 +100,11 @@ async fn add(ctx: Context<'_>,
 
         let (_names, ids): (Vec<String>, Vec<i32>) = output.await.unwrap();
 
-        for i in ids {
-            if i == id {
+        for _id in ids {
+            if _id == id {
                 let response: String = format!("You've already added someone with the rotation id of: {}", id);
-                ctx.say(response).await?;
+                println!("{}", response.clone());
+                ctx.say(response).await?;               
 
                 return Ok(());
             }
