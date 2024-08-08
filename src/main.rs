@@ -8,6 +8,7 @@ use songbird::input::YoutubeDl;
 use reqwest::Client as HttpClient;
 
 mod db;
+mod commands;
 
 
 struct Data {
@@ -51,6 +52,10 @@ async fn blame(
 #[poise::command(slash_command, prefix_command)]
 async fn list(ctx: Context<'_>) -> Result<(), Error> {
 
+    let guild = ctx.guild().unwrap().name.clone();
+    
+    let channel = ctx.guild_channel().await.unwrap().name().to_string();
+
     let guild_id = ctx.guild_id().unwrap().to_string();
 
     let _ = fs::create_dir_all(format!("./db/{}", guild_id));
@@ -74,7 +79,7 @@ async fn list(ctx: Context<'_>) -> Result<(), Error> {
 
     response.push_str(rem_last(&names_string));
 
-    println!("{}", response.clone());
+    println!("[{}: {}]: {}", guild, channel, response.clone());
 
     ctx.say(response).await?;
 
@@ -87,9 +92,13 @@ async fn add(ctx: Context<'_>,
     #[description = "Selected user"] name: String,
     #[description = "Place in rotation"] id: i32,
 ) -> Result<(), Error> {
-
+ 
     let guild_id = ctx.guild_id().unwrap().to_string();
-
+  
+    let guild = ctx.guild().unwrap().name.clone();
+  
+    let channel = ctx.guild_channel().await.unwrap().name().to_string();
+ 
     let _ = fs::create_dir_all(format!("./db/{}", guild_id));
     
     let mut conn = Mutex::new(Connection::open(format!("./db/{}/blame.db3", guild_id))?);
@@ -103,7 +112,7 @@ async fn add(ctx: Context<'_>,
         for _id in ids {
             if _id == id {
                 let response: String = format!("You've already added someone with the rotation id of: {}", id);
-                println!("{}", response.clone());
+                println!("[{}: {}]: {}", guild, channel, response.clone());
                 ctx.say(response).await?;               
 
                 return Ok(());
@@ -118,7 +127,7 @@ async fn add(ctx: Context<'_>,
     insert_blame(&mut conn, person.clone()).await?;
 
     let response: String = format!("Added {} into the rotation, with placement {}.", &person.name, &person.rotation_id);
-    println!("{}", response.clone());
+    println!("[{}: {}]: {}", guild, channel, response.clone());
     ctx.say(response).await?;
     Ok(())
 }
