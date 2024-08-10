@@ -1,21 +1,22 @@
 use std::fs;
 use db::{create_blame_table, insert_blame, Person};
-use poise::serenity_prelude::{self as serenity};
+use poise::serenity_prelude::{self as serenity, Message, Ready};
 use tokio::sync::Mutex;
 use rusqlite::{Connection, Result};
+use songbird::SerenityInit;
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
-use songbird::input::YoutubeDl;
-use reqwest::Client as HttpClient;
+// use songbird::input::YoutubeDl;
+// use reqwest::Client as HttpClient;
 
 mod db;
 mod commands;
-
 
 struct Data {
 
 } // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+
 
 pub fn rem_last(value: &str) -> &str {
     let mut chars = value.chars();
@@ -26,7 +27,41 @@ pub fn rem_last(value: &str) -> &str {
     return chars.as_str();
 }
 
-// Displays your uor another user's account creation date
+#[poise::command(slash_command, prefix_command)]
+pub async fn deafen(
+    ctx: Context<'_>,
+    msg: Message,
+) -> Result<(), Error> {
+    let guild_id = msg.guild_id.unwrap();
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialization")
+        .clone();
+    let handler_lock = match manager.get(guild_id) {
+        Some(handler) => handler,
+        None => {
+            ctx.reply("Not in a voice channel").await?;
+
+            return Ok(());
+        },
+    };
+
+    let mut handler = handler_lock.lock().await;
+
+    if handler.is_deaf() {
+        ctx.reply("Already deafened").await?;
+    } else {
+        if let Err(e) = handler.deafen(true).await {
+            ctx.reply(format!("Failed: {:?}", e)).await?;
+        }
+
+        ctx.reply("Deafened").await?;
+    }
+
+    Ok(())
+}
+
 #[poise::command(slash_command, prefix_command)]
 pub async fn age(
     ctx: Context<'_>,
@@ -141,7 +176,8 @@ async fn main() {
 
     let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment.");
     // let token: String = fs::read_to_string("./.env").expect("Unable to read file.");
-    let intents = serenity::GatewayIntents::non_privileged();
+    let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_VOICE_STATES;
+    //serenity::GatewayIntents::non_privileged();
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![age(), blame(),],
