@@ -1,15 +1,10 @@
 use std::fs;
 use db::{create_blame_table, insert_blame, Person};
-use poise::serenity_prelude::{self as serenity, Message, Ready};
+use poise::serenity_prelude::{self as serenity, Message};
 use tokio::sync::Mutex;
 use rusqlite::{Connection, Result};
-use songbird::SerenityInit;
-use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
-// use songbird::input::YoutubeDl;
-// use reqwest::Client as HttpClient;
 
 mod db;
-mod commands;
 
 struct Data {
 
@@ -28,38 +23,57 @@ pub fn rem_last(value: &str) -> &str {
 }
 
 #[poise::command(slash_command, prefix_command)]
-pub async fn deafen(
+async fn test(
     ctx: Context<'_>,
-    msg: Message,
+    #[description = "Selected user"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
-    let guild_id = msg.guild_id.unwrap();
-
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialization")
-        .clone();
-    let handler_lock = match manager.get(guild_id) {
-        Some(handler) => handler,
-        None => {
-            ctx.reply("Not in a voice channel").await?;
-
-            return Ok(());
-        },
-    };
-
-    let mut handler = handler_lock.lock().await;
-
-    if handler.is_deaf() {
-        ctx.reply("Already deafened").await?;
-    } else {
-        if let Err(e) = handler.deafen(true).await {
-            ctx.reply(format!("Failed: {:?}", e)).await?;
-        }
-
-        ctx.reply("Deafened").await?;
-    }
-
+    let u = user.as_ref().unwrap_or_else(|| ctx.author());
+    let response = format!("{}'s account was created at {}", u.name, u.created_at());
+    ctx.say(response).await?;
     Ok(())
+}
+
+//#[poise::command(slash_command, prefix_command)]
+//pub async fn deafen(
+//    ctx: Context<'_>,
+//    msg: Message,
+//) -> Result<(), Error> {
+//    let guild_id = msg.guild_id.unwrap();
+//
+//    let manager = songbird::get(ctx.serenity_context())
+//        .await
+//        .expect("Songbird Voice client placed in at initialization")
+//        .clone();
+//    let handler_lock = match manager.get(guild_id) {
+//        Some(handler) => handler,
+//        None => {
+//            ctx.reply("Not in a voice channel").await?;
+//
+//            return Ok(());
+//        },
+//    };
+//
+//    let mut handler = handler_lock.lock().await;
+//
+//    if handler.is_deaf() {
+//        ctx.reply("Already deafened").await?;
+//    } else {
+//        if let Err(e) = handler.deafen(true).await {
+//            ctx.reply(format!("Failed: {:?}", e)).await?;
+//        }
+//
+//        ctx.reply("Deafened").await?;
+//    }
+//
+//    Ok(())
+//}
+
+#[poise::command(slash_command, prefix_command)]
+async fn quit(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    ctx.reply(format!("Quitting program.")).await?;
+    std::process::exit(1);
 }
 
 #[poise::command(slash_command, prefix_command)]
