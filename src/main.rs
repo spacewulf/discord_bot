@@ -33,49 +33,55 @@ async fn test(
     Ok(())
 }
 
-//#[poise::command(slash_command, prefix_command)]
-//pub async fn deafen(
-//    ctx: Context<'_>,
-//    msg: Message,
-//) -> Result<(), Error> {
-//    let guild_id = msg.guild_id.unwrap();
-//
-//    let manager = songbird::get(ctx.serenity_context())
-//        .await
-//        .expect("Songbird Voice client placed in at initialization")
-//        .clone();
-//    let handler_lock = match manager.get(guild_id) {
-//        Some(handler) => handler,
-//        None => {
-//            ctx.reply("Not in a voice channel").await?;
-//
-//            return Ok(());
-//        },
-//    };
-//
-//    let mut handler = handler_lock.lock().await;
-//
-//    if handler.is_deaf() {
-//        ctx.reply("Already deafened").await?;
-//    } else {
-//        if let Err(e) = handler.deafen(true).await {
-//            ctx.reply(format!("Failed: {:?}", e)).await?;
-//        }
-//
-//        ctx.reply("Deafened").await?;
-//    }
-//
-//    Ok(())
-//}
-
 #[poise::command(slash_command, prefix_command)]
-async fn quit(
+pub async fn deafen(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
-    ctx.reply(format!("Quitting program.")).await?;
-    std::process::exit(1);
-}
+    let guild_id = ctx.guild_id().unwrap();
+  
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialization")
+        .clone();
+    let handler_lock = match manager.get(guild_id) {
+        Some(handler) => handler,
+        None => {
+            ctx.reply("Not in a voice channel").await?;
+   
+            return Ok(());
+        },
+    };
+   
+    let mut handler = handler_lock.lock().await;
+   
+    if handler.is_deaf() {
+        ctx.reply("Already deafened").await?;
+    } else {
+        if let Err(e) = handler.deafen(true).await {
+            ctx.reply(format!("Failed: {:?}", e)).await?;
+        }
+   
+        ctx.reply("Deafened").await?;
+    }
+  
+    Ok(())
+} 
+  
+#[poise::command(slash_command, prefix_command, rename = "quit")]
+async fn quit_bot(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
 
+    let guild = ctx.guild().unwrap().name.clone();
+    
+    let channel = ctx.guild_channel().await.unwrap().name().to_string();
+
+    ctx.reply(format!("Quitting program.")).await?;
+    println!(format!("[{}: {}]: Quitting program."), guild, channel)
+    ctx.framework().shard_manager.shutdown_all().await;
+    Ok(())
+} 
+ 
 #[poise::command(slash_command, prefix_command)]
 pub async fn age(
     ctx: Context<'_>,
@@ -194,7 +200,7 @@ async fn main() {
     //serenity::GatewayIntents::non_privileged();
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age(), blame(),],
+            commands: vec![age(), blame() ,quit_bot(), test(), deafen(),],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
