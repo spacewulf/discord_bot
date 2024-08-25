@@ -1,11 +1,5 @@
 use rusqlite::{Result, Error};
-
-#[derive(Clone)]
-pub struct Person {
-    pub name: String,
-    pub rotation_id: i32,
-}
-
+use crate::structs::Person;
 
 pub async fn create_blame_table(conn: &mut tokio::sync::Mutex<rusqlite::Connection>) -> Result<()> {
     conn.get_mut().execute("
