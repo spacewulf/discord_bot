@@ -13,3 +13,4 @@ songbird = { version = "0.4", features = ["builtin-queue"] }
 symphonia = { version = "0.5.2", features = ["aac", "mp3", "isomp4", "alac"] }
 reqwest = { version = "0.12.5" }
 dotenvy = { version = "0.15.7" }
+chrono = { version = "0.4.38" }
