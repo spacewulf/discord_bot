@@ -1,15 +1,13 @@
-use std::fs;
+use crate::structs::{Data, Person};
 use poise::serenity_prelude::{self as serenity};
-use tokio::sync::Mutex;
 use rusqlite::{Connection, Result};
-use crate::structs::{Person, Data};
+use std::fs;
+use tokio::sync::Mutex;
 
-mod db;
 mod commands;
-mod structs;
+mod db;
 mod methods;
-
-
+mod structs;
 
 // pub struct Data {
 
@@ -17,15 +15,9 @@ mod methods;
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-
-
-
 #[poise::command(slash_command, prefix_command)]
-pub async fn deafen(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
+pub async fn deafen(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
-  
     let manager = songbird::get(ctx.serenity_context())
         .await
         .expect("Songbird Voice client placed in at initialization")
@@ -34,26 +26,21 @@ pub async fn deafen(
         Some(handler) => handler,
         None => {
             ctx.reply("Not in a voice channel").await?;
-   
             return Ok(());
-        },
+        }
     };
-   
     let mut handler = handler_lock.lock().await;
-   
     if handler.is_deaf() {
         ctx.reply("Already deafened").await?;
     } else {
         if let Err(e) = handler.deafen(true).await {
             ctx.reply(format!("Failed: {:?}", e)).await?;
         }
-   
         ctx.reply("Deafened").await?;
     }
-  
     Ok(())
-} 
-  
+}
+
 #[poise::command(slash_command, prefix_command)]
 pub async fn age(
     ctx: Context<'_>,
@@ -66,18 +53,16 @@ pub async fn age(
 }
 
 #[tokio::main]
-async fn main() { 
+async fn main() {
     dotenvy::dotenv().unwrap();
-
     let _ = fs::create_dir_all("./db");
-
     let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment.");
-    // let token: String = fs::read_to_string("./.env").expect("Unable to read file.");
-    let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_VOICE_STATES;
-    //serenity::GatewayIntents::non_privileged();
+    let intents = serenity::GatewayIntents::non_privileged()
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_VOICE_STATES;
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age(), commands::blame(), commands::quit_bot(), deafen(),],
+            commands: vec![age(), commands::blame(), commands::quit_bot(), deafen()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
@@ -87,12 +72,9 @@ async fn main() {
             })
         })
         .build();
-
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
         .await;
-
     println!("Bot started successfully.");
-
     client.unwrap().start().await.unwrap();
 }
